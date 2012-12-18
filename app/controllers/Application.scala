@@ -20,6 +20,8 @@ import java.util._
 
 object Application extends Controller {
 
+    val toEventSource = Enumeratee.map[String] { msg => "data: " + msg + "\n\n" }
+
     def index() = Action {
         val uid = UUID.randomUUID().toString()
         Ok( views.html.index( uid ) )
@@ -34,7 +36,7 @@ object Application extends Controller {
                     user.feedEnumerator.push( state )
                 }
             }
-            Ok.feed( user.feedEnumerator.through( EventSource() ) ).as( "text/event-stream" )
+            Ok.feed( user.feedEnumerator.through( toEventSource ) ).as( "text/event-stream" )
         }.getOrElse {
           NotFound("User not found with id " + id)
         }
@@ -90,6 +92,9 @@ case class User(id: String, name: String = "Anonymous", description: String = ""
     }).mapDone({ in =>
         println("remove user with id " + id)
         User.removeUser( id )
+        optionnalConsumer.get().foreach { consumer =>
+            Application.restartUser( consumer.id )
+        }
         outputEnumerator.close()
         outputBroadcastEnumerator.close()
     })
