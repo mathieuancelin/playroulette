@@ -21,7 +21,7 @@ import collection.JavaConversions._
 
 object Application extends Controller {
 
-    val toEventSource = Enumeratee.map[String] { msg => "data: " + msg + "\n\n" }
+    val eventSource = Enumeratee.map[String] { msg => "data: " + msg + "\n\n" }
 
     def index() = Action {
         val uid = UUID.randomUUID().toString()
@@ -33,15 +33,18 @@ object Application extends Controller {
 
     def feed(id: String) = Action { implicit request =>
         Option( User.users.get( id ) ).map { user =>
-            Ok.feed( user.feedEnumerator.through( toEventSource ) ).as( "text/event-stream" )
+            Ok.feed( user.feedEnumerator.through( eventSource ) ).as( "text/event-stream" )
         }.getOrElse {
           NotFound("User not found with id " + id)
         }
     }
 
     def websocket(id: String) = WebSocket.async[Array[Byte]] { request =>
-        val user = User.users.get( id )
-        Promise.pure( ( user.inputCameraIteratee, user.outputBroadcastEnumerator.getPatchCord() ) )
+        Option( User.users.get( id ) ).map { user =>
+          Promise.pure( ( user.inputCameraIteratee, user.outputBroadcastEnumerator.getPatchCord() ) )
+        }.getOrElse {
+          Promise.pure( ( Iteratee.ignore, Enumerator.eof ) )
+        }
     }
 
     def next(id: String) = Action {
@@ -83,7 +86,6 @@ case class User(id: String, name: String = "Anonymous", description: String = ""
             }
         }
     }).mapDone({ in =>
-        println("remove user with id " + id)
         User.removeUser( id )
         optionnalConsumer.get().foreach { consumer =>
             Application.restartUser( consumer.id )
@@ -158,6 +160,5 @@ object Chat {
         }
         chat
     }
-
     def remove(id: String) = if (chats.containsKey(id)) chats.remove(id)
 }
