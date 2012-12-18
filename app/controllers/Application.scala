@@ -17,6 +17,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicReference
 import java.util._
+import collection.JavaConversions._
 
 object Application extends Controller {
 
@@ -29,6 +30,7 @@ object Application extends Controller {
 
     def feed(id: String) = Action { implicit request =>
         Option( User.users.get( id ) ).map { user =>
+            // don't really like that
             if (User.usersWaitingState.containsKey(id)) {
                 Akka.system.scheduler.scheduleOnce( 1 seconds ) {
                     val state = User.usersWaitingState.get(id)
@@ -36,6 +38,7 @@ object Application extends Controller {
                     user.feedEnumerator.push( state )
                 }
             }
+            /////////////////////////
             Ok.feed( user.feedEnumerator.through( toEventSource ) ).as( "text/event-stream" )
         }.getOrElse {
           NotFound("User not found with id " + id)
@@ -146,6 +149,14 @@ object User {
         if ( users.containsKey( id ) ) {
             users.remove( id )
         }
+    }
+
+    def findChat(id: String): Option[Chat] = {
+        for (chat <- Chat.chats.values()) {
+            if(chat.user1.id.equals(id)) return Some(chat)
+            if(chat.user2.id.equals(id)) return Some(chat)
+        }
+        None
     }
 }
 
