@@ -1,4 +1,4 @@
-@(id: String)
+@(id: String, next: String)
 
 @main("Play roulette") {
 
@@ -14,7 +14,7 @@
 
     <script type="text/javascript">
 
-        var next = '';
+        var next = '@next';
 
         function dataURItoBlob(dataURI) {
             var binary = atob(dataURI.split(',')[1]);
@@ -23,6 +23,17 @@
                 array.push(binary.charCodeAt(i));
             }
             return new Blob([new Uint8Array(array)], {type: 'image/jpeg'});
+        }
+
+        function update() {
+            if (next != "waiting") {
+                $('#message').html("You are now connected to a new partner")
+                $('#next').removeAttr('disabled')
+            } else {
+                $('#message').html("We are searching a new partner for you ...")
+                $('#target').attr('src', '@routes.Assets.at("images/static.gif")')
+                $('#next').attr('disabled', 'disabled')
+            }
         }
 
         $(document).ready(function(e) {
@@ -41,6 +52,8 @@
                     window.webkitURL.revokeObjectURL(url);
                 };
                 target.src = url;
+                next = "running"
+                $('#next').removeAttr('disabled')
             }
 
             var onwebcamfail = function(err) {
@@ -50,9 +63,9 @@
             $('#next').click(function(e) {
                 e.preventDefault()
                 if (next != "waiting") {
-                    $.get('/next/' + next, function(data) {})
+                    $.get('/next/@id', function(data) {})
                 } else {
-                    $('#message').html("We are searching a partner for you ...")
+                    $('#message').html("We are searching a new partner for you ...")
                 }
             })
 
@@ -67,21 +80,17 @@
                 var newblob = dataURItoBlob(data);
                 socket.send(newblob)
             }, 100);
+
             $('#next').attr('disabled', 'disabled')
             canvas.hide();
+            update();
+
             setTimeout(function() {
                 feed = new EventSource('/feed/@id')
                 feed.onmessage = function(e) {
                     var data = e.data
                     next = data.replace("'", "")
-                    if (data != "waiting") {
-                        $('#message').html("New chat with id " + data)
-                        $('#next').removeAttr('disabled')
-                    } else {
-                        $('#message').html("We are searching a partner for you ...")
-                        $('#target').attr('src', '@routes.Assets.at("images/static.gif")')
-                        $('#next').attr('disabled', 'disabled')
-                    }
+                    update()
                 }
             }, 1000)
         })        

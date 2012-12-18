@@ -25,20 +25,14 @@ object Application extends Controller {
 
     def index() = Action {
         val uid = UUID.randomUUID().toString()
-        Ok( views.html.index( uid ) )
+        val user = User.join(uid, "Anonymous", "")
+        user.waiting()
+        val state = restartUser(user.id)
+        Ok( views.html.index( uid, state ) )
     }
 
     def feed(id: String) = Action { implicit request =>
         Option( User.users.get( id ) ).map { user =>
-            // don't really like that
-            if (User.usersWaitingState.containsKey(id)) {
-                Akka.system.scheduler.scheduleOnce( 1 seconds ) {
-                    val state = User.usersWaitingState.get(id)
-                    User.usersWaitingState.remove(id)
-                    user.feedEnumerator.push( state )
-                }
-            }
-            /////////////////////////
             Ok.feed( user.feedEnumerator.through( toEventSource ) ).as( "text/event-stream" )
         }.getOrElse {
           NotFound("User not found with id " + id)
@@ -46,21 +40,17 @@ object Application extends Controller {
     }
 
     def websocket(id: String) = WebSocket.async[Array[Byte]] { request =>
-        val user = User.join(id, "Anonymous", "")
-        user.waiting()
-        val msg = restartUser(user.id)
-        User.usersWaitingState.put(id, msg)
+        val user = User.users.get( id )
         Promise.pure( ( user.inputCameraIteratee, user.outputBroadcastEnumerator.getPatchCord() ) )
     }
 
-    def next(chatId: String) = Action {
-        val id = chatId.replace("'", "")
-        Option( Chat.chats.get( id ) ).map { chat =>
+    def next(id: String) = Action {
+        User.findChat( id ).map { chat =>
             chat.stop()
             restartUser( chat.user1.id )
             restartUser( chat.user2.id )
             Ok("")
-        }.getOrElse( NotFound("Chat not found with id " + chatId) )
+        }.getOrElse( NotFound("Chat not found for user with id " + id) )
     }
 
     def restartUser( id: String ) = {
@@ -108,32 +98,20 @@ case class User(id: String, name: String = "Anonymous", description: String = ""
 
     val outputBroadcastEnumerator = Concurrent.hub[Array[Byte]]( outputEnumerator )
 
-    def pushFrame(frame: Array[Byte]) = {
-        outputEnumerator.push( frame )
-    }
+    def pushFrame(frame: Array[Byte]) = outputEnumerator.push( frame )
 
-    def waiting() = {
-        optionnalConsumer.set( None )
-    }
+    def waiting() = optionnalConsumer.set( None )
 
-    def connectToNewChatter( user: User ) = {
-        optionnalConsumer.set( Some( user ) )
-    }
+    def connectToNewChatter( user: User ) = optionnalConsumer.set( Some( user ) )
 
-    def informWaiting() {
-        feedEnumerator.push( "waiting" )
-    }
+    def informWaiting() = feedEnumerator.push( "waiting" )
 
-    def informNewChat(id: String) {
-        feedEnumerator.push( id )
-    }
+    def informNewChat(id: String) = feedEnumerator.push( id )
 }
 
 object User {
 
     val users = new ConcurrentHashMap[String, User]()
-
-    val usersWaitingState = new ConcurrentHashMap[String, String]()
 
     val waitingUsers = new ConcurrentLinkedQueue[User]()
 
@@ -165,9 +143,7 @@ case class Chat(id: String, user1: User, user2: User) {
         user1.connectToNewChatter( user2 )
         user2.connectToNewChatter( user1 )
     }
-    def stop() {
-        Chat.remove(id)
-    }
+    def stop() = Chat.remove(id)
 }
 
 object Chat {  
@@ -183,9 +159,5 @@ object Chat {
         chat
     }
 
-    def remove(id: String) = {
-        if (chats.containsKey(id)) {
-            chats.remove(id)
-        }
-    }
+    def remove(id: String) = if (chats.containsKey(id)) chats.remove(id)
 }
