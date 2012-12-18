@@ -1,0 +1,43 @@
+
+@main("Show") {
+    
+    <div>
+        <video id="live" width="320" height="240" autoplay></video>
+        <canvas width="320" id="canvas" height="240" style="display: inline;"></canvas>
+    </div>
+
+    <script type="text/javascript">
+        function dataURItoBlob(dataURI) {
+            var binary = atob(dataURI.split(',')[1]);
+            var array = [];
+            for(var i = 0; i < binary.length; i++) {
+                array.push(binary.charCodeAt(i));
+            }
+            return new Blob([new Uint8Array(array)], {type: 'image/jpeg'});
+        }
+        $(document).ready(function(e) {
+            var video = $("#live").get()[0];
+            var canvas = $("#canvas");
+            var ctx = canvas.get()[0].getContext('2d');
+            var WS = window['MozWebSocket'] ? MozWebSocket : WebSocket
+            var socket = new WS("ws://" + location.host + "/ws")
+
+            var onwebcamfail = function(err) {
+                console.log("error with cam")
+            }
+     
+            navigator.webkitGetUserMedia({video: true},
+                function(stream) {
+                    video.src = window.webkitURL.createObjectURL(stream);
+                },onwebcamfail)
+     
+            var timer = setInterval(function() { 
+                ctx.drawImage(video, 0, 0, 320, 240); 
+                var data = canvas.get()[0].toDataURL('image/jpeg', 1.0);
+                var newblob = dataURItoBlob(data);
+                socket.send(newblob)
+            }, 100);
+        })        
+    </script>
+    
+}

@@ -1,0 +1,80 @@
+@(id: String)
+
+@main("Chatroulette") {
+
+    <button id="next">Next</button><br/>
+    <div>
+        <img id="target" width="320" height="240" style="display: inline;"/>
+    </div>
+    <br/>
+    <div>
+        <video id="live" width="320" height="240" autoplay></video>
+        <canvas width="320" id="canvas" height="240" style="display: inline;"></canvas>
+    </div>
+    <div id="message"></div>
+
+    <script type="text/javascript">
+        var next = '';
+        function dataURItoBlob(dataURI) {
+            var binary = atob(dataURI.split(',')[1]);
+            var array = [];
+            for(var i = 0; i < binary.length; i++) {
+                array.push(binary.charCodeAt(i));
+            }
+            return new Blob([new Uint8Array(array)], {type: 'image/jpeg'});
+        }
+        $(document).ready(function(e) {
+            var video = $("#live").get()[0];
+            var canvas = $("#canvas");
+            canvas.hide();
+            var ctx = canvas.get()[0].getContext('2d');
+            var WS = window['MozWebSocket'] ? MozWebSocket : WebSocket
+            var socket = new WS("ws://" + location.host + "/ws/@id")
+            socket.onmessage = function(event) {
+                var data = event.data
+                var target = document.getElementById("target");
+                var url=window.webkitURL.createObjectURL(data);
+                target.onload = function() {
+                    window.webkitURL.revokeObjectURL(url);
+                };
+                target.src = url;
+            }
+            var feed;
+            var onwebcamfail = function(err) {
+                console.log("error with cam")
+            }
+            navigator.webkitGetUserMedia({video: true},
+                function(stream) {
+                    video.src = window.webkitURL.createObjectURL(stream);
+                },onwebcamfail)
+     
+            var timer = setInterval(function() { 
+                ctx.drawImage(video, 0, 0, 320, 240); 
+                var data = canvas.get()[0].toDataURL('image/jpeg', 1.0);
+                var newblob = dataURItoBlob(data);
+                socket.send(newblob)
+            }, 100);
+            $('#next').click(function(e) {
+                e.preventDefault()
+                if (next != "'waiting'") {
+                    $.get('/next/' + next, function(data) {})
+                } else {
+                    $('#message').html("We are searching a partner for you ...")
+                }
+            })
+            setTimeout(function() {
+                feed = new EventSource('/feed/@id')
+                feed.onmessage = function(e) {
+                    var data = e.data
+                    next = data.replace("'", "")
+                    console.log(data)
+                    if (data != "'waiting'") {
+                        $('#message').html("New chat with id " + data)
+                    } else {
+                        $('#message').html("We are searching a partner for you ...")
+                    }
+                }
+            }, 2000)
+        })        
+    </script>
+}
