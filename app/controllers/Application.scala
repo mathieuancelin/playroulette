@@ -22,7 +22,7 @@ object Application extends Controller {
 
     val eventSource = Enumeratee.map[String] { msg => "data: " + msg + "\n\n" }
 
-    val userNumber = new AtomicLong(0)
+    val userNumber = new AtomicLong( 0 )
 
     def index() = Action {
         val uid = UUID.randomUUID().toString()
@@ -32,7 +32,7 @@ object Application extends Controller {
         Ok( views.html.index( uid, state ) )
     }
 
-    def feed(id: String) = Action { implicit request =>
+    def feed(id: String) = Action {
         User.users.get( id ).map { user =>
             Ok.feed( user.feedEnumerator.through( eventSource ) ).as( "text/event-stream" )
         }.getOrElse {
@@ -40,7 +40,7 @@ object Application extends Controller {
         }
     }
 
-    def websocket( id: String ) = WebSocket.async[Array[Byte]] { request =>
+    def websocket( id: String ) = WebSocket.async[Array[Byte]] { implicit request =>
         User.users.get( id ).map { user =>
             Promise.pure( ( user.inputCameraIteratee, user.outputBroadcastEnumerator.getPatchCord() ) )
         }.getOrElse {
@@ -87,7 +87,7 @@ object Application extends Controller {
         }
     }
 
-    def userCam( id: String ) = WebSocket.async[Array[Byte]] { request =>
+    def userCam( id: String ) = WebSocket.async[Array[Byte]] { implicit request =>
         User.users.get( id ).map { user =>
             Promise.pure( ( Iteratee.ignore[Array[Byte]], user.outputUserBroadcastEnumerator.getPatchCord() ) )
         }.getOrElse {
