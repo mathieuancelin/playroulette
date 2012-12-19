@@ -22,11 +22,11 @@ object Application extends Controller {
 
     val eventSource = Enumeratee.map[String] { msg => "data: " + msg + "\n\n" }
 
-    val number = new AtomicLong(0)
+    val userNumber = new AtomicLong(0)
 
     def index() = Action {
         val uid = UUID.randomUUID().toString()
-        val user = User.join( uid, "Anonymous-" + number.incrementAndGet(), "" )
+        val user = User.join( uid, "Anonymous-" + userNumber.incrementAndGet(), "An anonymous user" )
         user.waiting( )
         val state = restartUser( user.id )
         Ok( views.html.index( uid, state ) )
@@ -36,15 +36,15 @@ object Application extends Controller {
         User.users.get( id ).map { user =>
             Ok.feed( user.feedEnumerator.through( eventSource ) ).as( "text/event-stream" )
         }.getOrElse {
-          NotFound( "User not found with id " + id )
+            NotFound( "User not found with id " + id )
         }
     }
 
     def websocket( id: String ) = WebSocket.async[Array[Byte]] { request =>
         User.users.get( id ).map { user =>
-          Promise.pure( ( user.inputCameraIteratee, user.outputBroadcastEnumerator.getPatchCord() ) )
+            Promise.pure( ( user.inputCameraIteratee, user.outputBroadcastEnumerator.getPatchCord() ) )
         }.getOrElse {
-          Promise.pure( ( Iteratee.ignore, Enumerator.eof ) )
+            Promise.pure( ( Iteratee.ignore, Enumerator.eof ) )
         }
     }
 
@@ -83,15 +83,15 @@ object Application extends Controller {
         User.users.get( id ).map { user =>
             Ok( views.html.user( user ) )
         }.getOrElse {
-          NotFound( "User not found with id " + id )
+            NotFound( "User not found with id " + id )
         }
     }
 
     def userCam( id: String ) = WebSocket.async[Array[Byte]] { request =>
         User.users.get( id ).map { user =>
-          Promise.pure( ( Iteratee.ignore[Array[Byte]], user.outputUserBroadcastEnumerator.getPatchCord() ) )
+            Promise.pure( ( Iteratee.ignore[Array[Byte]], user.outputUserBroadcastEnumerator.getPatchCord() ) )
         }.getOrElse {
-          Promise.pure( ( Iteratee.ignore, Enumerator.eof ) )
+            Promise.pure( ( Iteratee.ignore, Enumerator.eof ) )
         }
     }
 }
