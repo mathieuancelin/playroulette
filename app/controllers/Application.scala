@@ -110,8 +110,9 @@ case class User(id: String, name: String = "Anonymous", description: String = ""
     }).mapDone({ in =>
         User.removeUser( id )
         outputEnumerator.close()
-        outputUserEnumerator.close()
         outputBroadcastEnumerator.close()
+        outputUserEnumerator.close()
+        outputUserBroadcastEnumerator.close()
         optionnalConsumer.get().foreach { consumer =>
             Application.restartUser( consumer.id )
         }
