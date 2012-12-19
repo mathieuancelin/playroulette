@@ -1,0 +1,28 @@
+@(user: User)
+
+@main("User " + user.name) {
+
+    <h2>User @user.name</h2>
+
+    <div>
+        <img id="target" width="320" height="240" style="display: inline;" src="@routes.Assets.at("images/static.gif")"/>
+    </div>
+    
+    <script type="text/javascript">
+        $(document).ready(function(e) {
+            console.log("ok")
+            var WS = window['MozWebSocket'] ? MozWebSocket : WebSocket
+            var socket = new WS("ws://" + location.host + "/cam/@user.id")
+            socket.onmessage = function(event) {
+                console.log("data")
+                var data = event.data
+                var target = $("#target").get()[0];
+                var url = window.webkitURL.createObjectURL(data);
+                target.onload = function() {
+                    window.webkitURL.revokeObjectURL(url);
+                };
+                target.src = url;
+            }
+        })        
+    </script>
+}

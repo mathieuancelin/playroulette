@@ -1,4 +1,8 @@
-This is your new Play 2.0 application
-=====================================
+Play Roulette 
+=================
 
-This file will be packaged with your application, when using `play dist`.
+It's a chat roulette clone using HTML5 media API and Play 2 realtime features
+
+Just go to http://localhost:9000/ with 2 browers (or tabs, or computers) and accept to use your webcam 
+
+If you use chrome, don't forget to go to chrome://flags/ and activate media source API in <video> elements

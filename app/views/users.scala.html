@@ -1,0 +1,15 @@
+@(users:List[User])
+
+@main("Connected users") {
+
+    <h2>Connected users</h2>
+
+    @if(users.isEmpty) {
+        <p>No user connected ...</p>
+    }
+    <ul>
+        @for(user <- users) {
+            <li>User <a href="@routes.Application.user(user.id)">@user.name</a></li>
+        }
+    </ul>
+}
