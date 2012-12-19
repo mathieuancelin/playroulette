@@ -2,7 +2,8 @@
 
 @main("Play roulette") {
 
-    <button id="next">Next partner >>> </button><br/><br/><div id="message"></div><br/>
+    <button id="next" class="btn btn-success">Next partner <i class="icon-forward icon-white"></i> </button><br/><br/>
+    <div id="message" class="alert alert-info"></div><br/>
     <div>
         <img id="target" width="320" height="240" style="display: inline;" src="@routes.Assets.at("images/static.gif")"/>
     </div>
@@ -28,9 +29,11 @@
         function update() {
             if (next != "waiting") {
                 $('#message').html("You are now connected to a new partner")
+                $('#message').attr('class', 'alert alert-success')
                 $('#next').removeAttr('disabled')
             } else {
                 $('#message').html("We are searching a new partner for you ...")
+                $('#message').attr('class', 'alert alert-info')
                 $('#target').attr('src', '@routes.Assets.at("images/static.gif")')
                 $('#next').attr('disabled', 'disabled')
             }
@@ -66,6 +69,7 @@
                     $.get('/next/@id', function(data) {})
                 } else {
                     $('#message').html("We are searching a new partner for you ...")
+                    $('#message').attr('class', 'alert alert-info')
                 }
             })
 

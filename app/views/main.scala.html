@@ -5,11 +5,45 @@
 <html>
     <head>
         <title>@title</title>
-        <link rel="stylesheet" media="screen" href="@routes.Assets.at("stylesheets/main.css")">
+        <link rel="stylesheet" media="screen" href="@routes.Assets.at("bootstrap/css/bootstrap.min.css")">
         <link rel="shortcut icon" type="image/png" href="@routes.Assets.at("images/favicon.png")">
         <script src="@routes.Assets.at("javascripts/jquery-1.7.1.min.js")" type="text/javascript"></script>
+        <script src="@routes.Assets.at("bootstrap/js/bootstrap.min.js")" type="text/javascript"></script>
+        <style type="text/css">
+            html, body {
+                background-color: #eee;
+            }
+            body {
+                padding-top: 60px;
+            }
+            .half {
+                padding-top: 180px;
+            }
+            .container > footer p {
+                text-align: center; 
+            }
+            .container {
+                width: 340px;
+            }
+            .navbar-inner .container {
+                width: 340px;
+            }
+        </style>
     </head>
     <body>
-        @content
+
+        <div class="navbar navbar-inverse navbar-fixed-top">
+          <div class="navbar-inner">
+            <div class="container">
+            <a class="brand" href="@routes.Application.index()">Play Roulette</a>
+            <ul class="nav">
+              <li><a href="@routes.Application.userList()">Connected users</a></li>
+            </ul>
+            </div>
+          </div>
+        </div>
+        <div class="container">
+            @content
+        </div>
     </body>
 </html>
