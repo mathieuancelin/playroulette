@@ -72,7 +72,7 @@ object Application extends Controller {
                 otherChatter.informNewChat( chat.id )
                 chat.id 
             }
-        }.get
+        }.getOrElse( "waiting" ) 
     }
 
     def userList() = Action {
@@ -102,7 +102,7 @@ case class User(id: String, name: String = "Anonymous", description: String = ""
 
     val inputCameraIteratee = Iteratee.foreach[Array[Byte]] ( _ match {
         case message : Array[Byte] => {
-            optionnalConsumer.get().foreach { consumer =>
+            optionnalConsumer.get().map { consumer =>
                 consumer.pushFrame( message )
             }
             outputUserEnumerator.push( message )
@@ -113,7 +113,7 @@ case class User(id: String, name: String = "Anonymous", description: String = ""
         outputBroadcastEnumerator.close()
         outputUserEnumerator.close()
         outputUserBroadcastEnumerator.close()
-        optionnalConsumer.get().foreach { consumer =>
+        optionnalConsumer.get().map { consumer =>
             Application.restartUser( consumer.id )
         }
     })
@@ -152,11 +152,7 @@ object User {
     def removeUser(id: String) = users.remove( id )
 
     def findChat( id: String ): Option[Chat] = {
-        for ( chat <- Chat.chats.values ) {
-            if( chat.user1.id.equals( id ) ) return Some( chat )
-            if( chat.user2.id.equals( id ) ) return Some( chat )
-        }
-        None
+        Chat.chats.values.filter { chat => ( chat.user1.id == id ) || ( chat.user2.id == id ) }.headOption
     }
 }
 
@@ -173,9 +169,8 @@ object Chat {
     val chats = HashMap.empty[String, Chat]
 
     def register( user1: User, user2: User ) = {
-        val uid = UUID.randomUUID().toString()
-        val chat = Chat( uid, user1, user2 )
-        chats.put( uid, chat )
+        val chat = Chat( UUID.randomUUID().toString(), user1, user2 )
+        chats.put( chat.id, chat )
         chat
     }
     def remove( id: String ) = chats.remove( id ) 
