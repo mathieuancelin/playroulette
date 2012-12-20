@@ -65,11 +65,10 @@ object Application extends Controller {
                 user.informWaiting()
                 "waiting"
             } else {
-                val otherChatter = User.waitingUsers.dequeue()
-                val chat = Chat.register( user, otherChatter )
+                val chat = Chat.register( user, User.waitingUsers.dequeue() )
                 chat.start()
-                user.informNewChat( chat.id )
-                otherChatter.informNewChat( chat.id )
+                chat.user1.informNewChat( chat.id )
+                chat.user2.informNewChat( chat.id )
                 chat.id 
             }
         }.getOrElse( "waiting" ) 
