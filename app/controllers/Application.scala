@@ -22,13 +22,11 @@ object Application extends Controller {
 
     val eventSource = Enumeratee.map[String] { msg => "data: " + msg + "\n\n" }
 
-    val userNumber = new AtomicLong( 0 )
-
     def index() = Action {
         val uid = UUID.randomUUID().toString()
-        val user = User.join( uid, "Anonymous-" + userNumber.incrementAndGet(), "An anonymous user" )
+        val user = User.join( uid, "Anonymous-" + User.userNumber.incrementAndGet(), "An anonymous user" )
         user.waiting( )
-        val state = restartUser( user.id )
+        val state = User.restart( user.id )
         Ok( views.html.index( uid, state ) )
     }
 
@@ -49,29 +47,12 @@ object Application extends Controller {
     }
 
     def next( id: String ) = Action {
-        User.findChat( id ).map { chat =>
+        Chat.findChat( id ).map { chat =>
             chat.stop()
-            restartUser( chat.user1.id )
-            restartUser( chat.user2.id )
+            User.restart( chat.user1.id )
+            User.restart( chat.user2.id )
             Ok( "" )
         }.getOrElse( NotFound( "Chat not found for user with id " + id ) )
-    }
-
-    def restartUser( id: String ) = {
-        User.users.get( id ).map { user =>
-            user.waiting()
-            if ( User.waitingUsers.isEmpty ) {
-                User.waitingUsers += user
-                user.informWaiting()
-                "waiting"
-            } else {
-                val chat = Chat.register( user, User.waitingUsers.dequeue() )
-                chat.start()
-                chat.user1.informNewChat( chat.id )
-                chat.user2.informNewChat( chat.id )
-                chat.id 
-            }
-        }.getOrElse( "waiting" ) 
     }
 
     def userList() = Action {
@@ -113,7 +94,7 @@ case class User(id: String, name: String = "Anonymous", description: String = ""
         outputUserEnumerator.close()
         outputUserBroadcastEnumerator.close()
         optionnalConsumer.get().map { consumer =>
-            Application.restartUser( consumer.id )
+            User.restart( consumer.id )
         }
     })
 
@@ -138,8 +119,8 @@ case class User(id: String, name: String = "Anonymous", description: String = ""
 
 object User {
 
+    val userNumber = new AtomicLong( 0 )
     val users = HashMap.empty[String, User]
-
     val waitingUsers = new SynchronizedQueue[User]()
 
     def join( uid: String, name: String, desc: String ) = {
@@ -150,8 +131,21 @@ object User {
 
     def removeUser(id: String) = users.remove( id )
 
-    def findChat( id: String ): Option[Chat] = {
-        Chat.chats.values.filter { chat => ( chat.user1.id == id ) || ( chat.user2.id == id ) }.headOption
+    def restart( id: String ) = {
+        users.get( id ).map { user =>
+            user.waiting()
+            if ( waitingUsers.isEmpty ) {
+                waitingUsers += user
+                user.informWaiting()
+                "waiting"
+            } else {
+                val chat = Chat.register( user, waitingUsers.dequeue() )
+                chat.start()
+                chat.user1.informNewChat( chat.id )
+                chat.user2.informNewChat( chat.id )
+                chat.id 
+            }
+        }.getOrElse( "waiting" ) 
     }
 }
 
@@ -164,7 +158,6 @@ case class Chat( id: String, user1: User, user2: User ) {
 }
 
 object Chat {  
-
     val chats = HashMap.empty[String, Chat]
 
     def register( user1: User, user2: User ) = {
@@ -173,4 +166,8 @@ object Chat {
         chat
     }
     def remove( id: String ) = chats.remove( id ) 
+
+    def findChat( id: String ): Option[Chat] = {
+        Chat.chats.values.filter { chat => ( chat.user1.id == id ) || ( chat.user2.id == id ) }.headOption
+    }
 }

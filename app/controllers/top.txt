@@ -1,0 +1,21 @@
+Les gagnants :
+
+LOG:  duration: 21219.261 ms 
+LOG:  duration: 20402.523 ms 
+
+Les autres : 
+
+LOG:  duration: 2540.154 ms  
+LOG:  duration: 2579.867 ms  
+LOG:  duration: 1030.180 ms  
+LOG:  duration: 1068.891 ms  
+LOG:  duration: 1347.406 ms  
+LOG:  duration: 5041.364 ms  
+LOG:  duration: 3464.128 ms  
+LOG:  duration: 1932.948 ms  
+LOG:  duration: 2510.156 ms  
+LOG:  duration: 2838.478 ms  
+LOG:  duration: 3800.682 ms  
+LOG:  duration: 1202.999 ms  
+LOG:  duration: 4276.540 ms  
+LOG:  duration: 4408.397 ms  
