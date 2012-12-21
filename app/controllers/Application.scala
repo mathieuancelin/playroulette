@@ -132,18 +132,18 @@ object User {
     def removeUser(id: String) = users.remove( id )
 
     def restart( id: String ) = {
-        users.get( id ).map { user =>
+        users.get( id ).flatMap { user =>
             user.waiting()
             if ( waitingUsers.isEmpty ) {
                 waitingUsers += user
                 user.informWaiting()
-                "waiting"
+                None
             } else {
                 val chat = Chat.register( user, waitingUsers.dequeue() )
                 chat.start()
                 chat.user1.informNewChat( chat.id )
                 chat.user2.informNewChat( chat.id )
-                chat.id 
+                Some( chat.id )
             }
         }.getOrElse( "waiting" ) 
     }
